@@ -1,0 +1,330 @@
+﻿@model PresentationWebApp.Models.ManagerModel
+
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<script type="text/javascript" src="~/Scripts/jquery-2.1.1.js"></script>
+<script type="text/javascript" src="~/Scripts/jquery-ui-1.11.1.js"></script>
+<script type="text/javascript" src="~/Scripts/bootstrap.js"></script>
+<script type="text/javascript" src="~/Scripts/jquery.cloudinary.js"></script>
+
+<link rel="stylesheet" href="~/Content/bootstrap-theme.css" />
+<link rel="stylesheet" href="~/Content/bootstrap.css" />
+<link rel="stylesheet" href="~/Content/jquery-ui.theme.css" />
+<link rel="stylesheet" href="~/Content/jquery-ui.css" />
+<link rel="stylesheet" href="~/Content/StyleSheet.css" />
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#timeline-list, #left-list").sortable({
+            connectWith: ".connectedSortable", cursor: "pointer", opacity: 0.60, containment: "document",
+            update: function () {
+                $('#present-photos').empty();
+                var arrayIdPhotos = new Array();
+                var timelineList = $("#timeline-list > li").toArray();
+
+                for (var i = 0; i < timelineList.length; i++) {
+                    arrayIdPhotos.push($(timelineList[i]).children("img").attr("id"));
+                }
+
+                for (var i = 0; i < arrayIdPhotos.length; i++) {
+                    $('#present-photos').append("<input type=\"hidden\" name=\"" + arrayIdPhotos[i] + "\" value=\"" + arrayIdPhotos[i] + "\" />");
+                }
+            }
+        }).disableSelection();
+
+        $(".left-list-item").click(function () {
+            $("#preview-window").attr("src", $(this).attr("src"));
+            $("#preview-window").attr("name", $(this).attr("id"));
+            $('#namePhoto').attr("value", $(this).attr("name"));
+            $('#descriptionPhoto').text($(this).attr("desc"));
+        });
+
+        $("#gray-scale-effect").click(function () {
+            $("#preview-window").attr("src", "http://res.cloudinary.com/cerber/image/upload/e_grayscale/" + $("#preview-window").attr("name") + ".jpg");
+        });
+
+        $("#contrast-effect").click(function () {
+            $("#preview-window").attr("src", "http://res.cloudinary.com/cerber/image/upload/e_contrast:100/" + $("#preview-window").attr("name") + ".jpg");
+        });
+
+        $("#blur-effect").click(function () {
+            $("#preview-window").attr("src", "http://res.cloudinary.com/cerber/image/upload/e_blur/" + $("#preview-window").attr("name") + ".jpg");
+        });
+
+        $("#negate-effect").click(function () {
+            $("#preview-window").attr("src", "http://res.cloudinary.com/cerber/image/upload/e_negate/" + $("#preview-window").attr("name") + ".jpg");
+        });
+
+        var speed = 1000;
+        $("#render").click(function () {
+            var timelineList = $("#timeline-list > li").toArray();
+
+            var arraySrcImages = new Array();
+            for (var i = 0; i < timelineList.length; i++) {
+                arraySrcImages[i] = $(timelineList[i]).children("img").attr("src");
+            }
+
+            var track = $("#track");
+            for (var i = 0; i < arraySrcImages.length; i++)
+                track.append("<img src=\"" + arraySrcImages[i] + "\" />");
+
+            var arrayImages = $('#track img');
+            var timelineWidth = 0;
+            for (var i = 0; i < arrayImages.length; i++) {
+                timelineWidth += $(arrayImages[i]).width();
+            }
+
+            $("#track").width(timelineWidth);
+
+            var width = $('#track img').width();
+
+            $('#render-dialog').dialog({
+                height: 654,
+                width: 520,
+                modal: true,
+                buttons: {
+                    'Play': function () {
+                        play = true;
+                        carousel();
+                    },
+
+                    'Pause': function () {
+                        play = false;
+                    },
+
+                    'Close': function () {
+                        play = false;
+                        track.empty();
+                        $(this).dialog("close");
+                    }
+                }
+            });
+
+            var play = true;
+            function carousel() {
+                if (!play)
+                    return;
+
+                $('#track').delay(speed).animate({ right: '+=' + width }, 3000, function () {
+                    var first = $('#track img:first-child');
+
+                    first.remove();
+
+                    $(this).append(first);
+
+                    $(this).css({ right: '-=' + width });
+
+                    carousel();
+                });
+            }
+
+            carousel();
+        });
+
+        $('#fileUpload').on('change', function () {
+            $('#upload').click();
+        });
+
+        $("#left-bar").tabs();
+        $("#right-bar").tabs();
+
+        $('#apply-speed-slider').click(function () {
+            if ($.isNumeric($('#speed-slider').val())) {
+                speed = $('#speed-slider').val();
+            }
+        });
+
+        $('#speed-slider').val(speed);
+
+        $('#render-dialog').hide();
+
+        $('#url-file-update').click(function (e) {
+            e.preventDefault();
+            var url = $('#url-file-link').val();
+
+            $.post('@Url.Action("UploadEx", "Home")', "url=" + url.toString(), function (data) {
+                var obj = jQuery.parseJSON(data);
+                $('#left-list').append("<li><img class=\"left-list-item img-thumbnail\" id=" + obj.PhotoId + "\" name=\"" + obj.PhotoName + "\" desc=\"" + obj.PhotoDescription + "\" src=\"" + obj.PhotoPath + "\" /></li>");
+            });
+        });
+
+        $(".right-list-item").click(function (e) {
+            e.preventDefault();
+            var url = $(this).attr("src");
+
+            $.get('@Url.Action("Manager", "Home")', "url=" + url.toString(), function (data) {
+                var array = jQuery.parseJSON(data);
+                $('#timeline-list').empty();
+                for (var i = 0; i < array.length; i++) {
+                    $('#timeline-list').append("<li><img class=\"left-list-item img-thumbnail\" src=\"" + array[i].PhotoPath + "\" /></li>");
+                }
+            });
+        });
+    });
+</script>
+
+<div class="container">
+    <div class="row col-lg-12 panel panel-default">
+        @using (Ajax.BeginForm("Upload", "Home", new AjaxOptions() { HttpMethod = "POST" }, new { enctype = "multipart/form-data" }))
+        {
+            <div class="btn-group" style="margin: 10px 0">
+                <span class="btn btn-success btn-file">
+                    Upload <input type="file" name="UploadFile" id="fileUpload" value="Upload" />
+                </span>
+
+                <input class="btn btn-success" type="submit" name="Submit" id="upload" value="Upload" style="display:none;" />
+                <input class="btn btn-success" type="button" name="Render" id="render" value="Render Timeline" />
+            </div>
+            <div class="btn-group">
+                <input id="url-file-link" type="text" class="btn btn-info" />
+                <input id="url-file-update" type="button" class="btn btn-info" value="Upload" />
+            </div>
+        }
+
+        @using (Ajax.BeginForm("Present", "Home", new AjaxOptions() { HttpMethod = "POST" }))
+        {
+            <div class="btn-group">
+                <input class="btn btn-danger" type="submit" style="margin:-54px 0 0 480px;" name="SavePresent" id="save-present" value="Save presentation" />
+            </div>
+            <div id="present-photos"></div>
+        }
+    </div>
+</div>
+
+<div class="container">
+    @* Begin timeline *@
+    <div id="timeline-bar" class="row col-lg-12 panel panel-default">
+        <h1>Timeline info: drag and drop images here</h1>
+        <ul id="timeline-list" class="connectedSortable list-inline" style="margin: 10px 0; min-width: 90px; min-height: 90px;"></ul>
+    </div>
+    @* End timeline *@
+</div>
+
+<div class="container">
+    <div class="row col-lg-12">
+        @* Begin left-bar *@
+        <div id="left-bar" class="col-lg-3" style="border: 1px solid #000; height: 660px;">
+            <ul>
+                @for (var i = 0; i < (Model.UserFloatPhotos.Count / 10) + 1; i++)
+                {
+                    <li><a style="padding: 0; margin: 0;" href="#tabs-@(i + 1)">@(i + 1)</a></li>
+                }
+            </ul>
+
+            @{
+                int pager = 10;
+                int index = 0;
+            }
+
+            @for (var i = 0; i < (Model.UserFloatPhotos.Count / 10) + 1; i++)
+            {
+                <div id="tabs-@(i + 1)" style="margin: 0; padding: 0;">
+                    <ul id="left-list" class="connectedSortable list-inline" style="height: 100px;">
+                        @foreach (var a in Model.UserFloatPhotos)
+                        {
+                            if (pager > index && index >= pager - 10)
+                            {
+                                <li><img class="left-list-item img-thumbnail" id="@a.PhotoId" name="@a.PhotoName" desc="@a.PhotoDescription" src="@a.PhotoPath" /></li>
+                            }
+
+                            index++;
+                        }
+
+                        @{
+                        index = 0;
+                        pager += 10;
+                        }
+
+                    </ul>
+                </div>
+            }
+        </div>
+        @* End left-bar *@
+
+        @* Begin main-bar *@
+        <div id="main-bar" class="col-lg-6">
+            <div class="container-fluid col-lg-12">
+                <div class="row">
+                    <img id="preview-window" class="img-thumbnail center-block" style="width: 470px; height: 470px;" />
+                </div>
+                <div class="row" style="padding: 10px;">
+                    <form class="form-horizontal col-lg-offset-3" role="form">
+                        <div class="form-group">
+                            <input id="namePhoto" type="text" class="form-control" placeholder="Photo name">
+                        </div>
+                        <div class="form-group">
+                            <textarea id="descriptionPhoto" class="form-control" rows="3" placeholder="Description"></textarea>
+                        </div>
+                        <div class="btn-group" style="margin: 0 0 0 8px">
+                            <button type="submit" class="btn btn-success">Save</button>
+                            <button type="submit" class="btn btn-success">Cansel</button>
+                            <button type="submit" class="btn btn-danger">Delete photo</button>
+                        </div>
+                    </form>
+                    <div class="btn-group" style="margin:10px 0 0 104px;">
+                        <button type="button" id="gray-scale-effect" class="btn btn-warning">Gray Scale</button>
+                        <button type="button" id="contrast-effect" class="btn btn-warning">Contrast</button>
+                        <button type="button" id="blur-effect" class="btn btn-warning">Blur</button>
+                        <button type="button" id="negate-effect" class="btn btn-warning">Negate</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @* End main-bar *@
+
+        @* Begin right-bar *@
+        <div id="right-bar" class="col-lg-3" style="border: 1px solid #000; height: 660px;">
+            <ul>
+                @for (var i = 0; i < (Model.PathBeginPhoto.Count / 10) + 1; i++)
+                {
+                    <li><a style="padding: 0; margin: 0;" href="#tabs-@(i + 1)">@(i + 1)</a></li>
+                }
+            </ul>
+
+            @{
+                int pagerl = 10;
+                int indexl = 0;
+            }
+
+            @for (var i = 0; i < (Model.PathBeginPhoto.Count / 10) + 1; i++)
+            {
+                <div id="tabs-@(i + 1)" style="margin: 0; padding: 0;">
+                    <ul id="right-list" class="connectedSortable list-inline" style="height: 100px;">
+                        @foreach (var a in Model.PathBeginPhoto)
+                        {
+                            if (pagerl > indexl && indexl >= pagerl - 10)
+                            {
+                                <li><img class="right-list-item img-thumbnail" src="@a" /></li>
+                            }
+
+                            indexl++;
+                        }
+
+                        @{
+                        indexl = 0;
+                        pagerl += 10;
+                        }
+
+                    </ul>
+                </div>
+            }
+        </div>
+        @* End right-bar *@
+    </div>
+</div>
+
+<div id="render-dialog" title="Render presentation">
+    <div id="slider">
+        <div id="track"></div>
+    </div>
+    <div class="row">
+        <div class="btn-group center-block" style="margin: 10px 0 0 100px;">
+            <input id="speed-slider" type="text" class="btn btn-success" placeholder="Please enter the speed." />
+            <input id="apply-speed-slider" type="button" class="btn btn-success" value="Apply" />
+        </div>
+    </div>
+</div>
+
+<div class="row"></div>

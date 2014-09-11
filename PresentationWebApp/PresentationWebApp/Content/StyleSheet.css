@@ -1,0 +1,54 @@
+﻿#slider {
+    width: 480px;
+    height: 480px;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+#track {
+    position: relative;
+}
+
+    #track img {
+        width: 480px;
+        height: 480px;
+        float: left;
+        position: relative;
+    }
+
+#timeline-bar ul, #right-bar ul, #left-bar ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+    #timeline-bar ul li, #right-bar ul li, #left-bar ul li {
+        margin: 5px;
+        padding: 5px;
+    }
+
+        #timeline-bar ul li img, #right-bar ul li img, #left-bar ul li img {
+            width: 100px;
+            height: 100px;
+        }
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+    .btn-file input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        background: white;
+        cursor: inherit;
+        display: block;
+    }
